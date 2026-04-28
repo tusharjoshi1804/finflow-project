@@ -28,8 +28,8 @@ class TransactionCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transaction
-        fields = ["id", "account", "transaction_type", "amount", "reference"]
-        read_only_fields = ["id"]
+        fields = ["id", "account", "transaction_type", "amount", "reference", "status"]
+        read_only_fields = ["id", "status"]
 
     def validate_amount(self, value: Decimal) -> Decimal:
         if value <= Decimal("0"):

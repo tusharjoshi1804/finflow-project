@@ -228,15 +228,11 @@ class TestUserDelete:
         # the custom manager's is_deleted=False guard
         qs = User._default_manager.model._default_manager.db_manager("default").all()
         deleted_user = qs.filter(pk=user_id).using("default")
-        # Use raw SQL to be 100% sure we bypass the manager
-        from django.db import connection
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT is_deleted FROM users WHERE id = %s", [str(user_id)]
-            )
-            row = cursor.fetchone()
-        assert row is not None, "User row not found in DB"
-        assert row[0] in (True, 1), f"Expected is_deleted=True, got {row[0]}"
+        # Bypass the custom managed queryset and verify the soft-delete flag directly.
+        is_deleted = User._base_manager.using("default").filter(pk=user_id).values_list(
+            "is_deleted", flat=True
+        ).first()
+        assert is_deleted in (True, 1), f"Expected is_deleted=True, got {is_deleted}"
 
     def test_delete_unauthenticated_returns_401(self, api_client, user):
         res = api_client.delete(detail_url(user.id))

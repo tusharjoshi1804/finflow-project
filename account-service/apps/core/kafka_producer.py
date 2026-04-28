@@ -10,13 +10,17 @@ from typing import Any
 
 from django.conf import settings
 
+try:
+    from kafka import KafkaProducer  # type: ignore
+except Exception:
+    KafkaProducer = None
+
 logger = logging.getLogger(__name__)
 
 
 def _get_producer():
     """Lazily create a KafkaProducer. Returns None if Kafka is unavailable."""
     try:
-        from kafka import KafkaProducer  # type: ignore
         producer = KafkaProducer(
             bootstrap_servers=settings.KAFKA_BROKER,
             value_serializer=lambda v: json.dumps(v, default=str).encode("utf-8"),

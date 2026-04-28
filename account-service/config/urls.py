@@ -1,5 +1,6 @@
 """Root URL configuration for FinFlow Account Service."""
 from django.contrib import admin
+from django.shortcuts import redirect
 from django.urls import include, path
 from drf_spectacular.views import (
     SpectacularAPIView,
@@ -11,6 +12,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from apps.transactions.urls import internal_urlpatterns
 
 urlpatterns = [
+    path("", lambda request: redirect("swagger-ui", permanent=False)),
     path("admin/", admin.site.urls),
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),

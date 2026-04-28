@@ -187,13 +187,8 @@ class TestAccountDelete:
 
     def test_delete_soft_deletes_in_db(self, client_a, account_a):
         client_a.delete(detail_url(account_a.id))
-        from django.db import connection
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT is_deleted FROM accounts WHERE id = %s", [str(account_a.id)]
-            )
-            row = cursor.fetchone()
-        assert row[0] in (True, 1)
+        is_deleted = Account.objects.filter(id=account_a.id).values_list("is_deleted", flat=True).first()
+        assert is_deleted in (True, 1)
 
     def test_delete_other_user_account_returns_404(self, client_b, account_a):
         res = client_b.delete(detail_url(account_a.id))

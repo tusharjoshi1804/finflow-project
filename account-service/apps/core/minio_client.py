@@ -8,6 +8,11 @@ import logging
 
 from django.conf import settings
 
+try:
+    from minio import Minio  # type: ignore
+except Exception:
+    Minio = None
+
 logger = logging.getLogger(__name__)
 
 ALLOWED_CONTENT_TYPES = {
@@ -22,7 +27,6 @@ MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 def get_minio_client():
     """Return a connected Minio client or None if unavailable."""
     try:
-        from minio import Minio  # type: ignore
         client = Minio(
             settings.MINIO_ENDPOINT,
             access_key=settings.MINIO_ACCESS_KEY,

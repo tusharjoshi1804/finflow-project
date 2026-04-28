@@ -50,6 +50,12 @@ async def shutdown_event():
     logger.info("Processing service shut down cleanly")
 
 
+@app.get("/", tags=["health"])
+async def root():
+    """Root endpoint for the processing service."""
+    return {"status": "ok", "service": "processing-service", "message": "Processing service is running"}
+
+
 @app.get("/health", tags=["health"])
 async def health_check():
     """Health check endpoint — always returns 200 OK."""

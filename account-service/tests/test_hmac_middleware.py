@@ -22,14 +22,15 @@ def make_request(method="PATCH", path="/api/internal/transactions/abc/",
         sig = "00" * 32
 
     class FakeRequest:
-        META = {
-            "HTTP_X_TIMESTAMP": ts,
-            "HTTP_X_NONCE": nc,
-            "HTTP_X_SIGNATURE": sig,
-        }
-        this_body = body
-        this_method = method
-        this_path = path
+        def __init__(self):
+            self.META = {
+                "HTTP_X_TIMESTAMP": ts,
+                "HTTP_X_NONCE": nc,
+                "HTTP_X_SIGNATURE": sig,
+            }
+            self.this_body = body
+            self.this_method = method
+            self.this_path = path
 
         @property
         def body(self):
