@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual envs
+venv/
+.venv/
+env/
+
+# Django
+*.sqlite3
+*.log
+staticfiles/
+media/
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
+.pytest_cache/
+
+# Env files — NEVER commit real secrets
+.env
+account-service.env
+processing-service.env
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Docker
+*.override.yml
