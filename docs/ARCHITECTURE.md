@@ -2,7 +2,10 @@
 
 ## 1. System Overview
 
-FinFlow is a fintech platform composed of two independent microservices that communicate asynchronously via Kafka and synchronously via HMAC-signed HTTP calls.Browser / API Client
+FinFlow is a fintech platform composed of two independent microservices that communicate asynchronously via Kafka and synchronously via HMAC-signed HTTP calls.
+
+```
+Browser / API Client
 │
 │  JWT Bearer Token
 ▼
@@ -31,7 +34,10 @@ FinFlow is a fintech platform composed of two independent microservices that com
 │  Airflow stub            │  — Triggers payment DAG (stub)
 │  HMAC signer             │  — Signs PATCH request
 │  → PATCH /api/internal/  │  — Updates status: COMPLETED/FAILED
-└─────────────────────────┘## 2. Data Stores
+└─────────────────────────┘
+```
+
+## 2. Data Stores
 
 | Store      | Purpose                                      |
 |------------|----------------------------------------------|

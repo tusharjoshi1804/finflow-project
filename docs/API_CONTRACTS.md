@@ -5,7 +5,12 @@
 - Processing Service: `http://localhost:8001`
 
 ## Authentication
-All endpoints except registration and token endpoints require:Authorization: Bearer <access_token>---
+
+All endpoints except registration and token endpoints require:
+
+```
+Authorization: Bearer <access_token>
+```
 
 ## Account Service Endpoints
 
