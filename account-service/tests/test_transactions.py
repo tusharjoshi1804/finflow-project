@@ -253,52 +253,127 @@ class TestTransactionRetrieve:
 # ---------------------------------------------------------------
 # Internal status update  PATCH /api/internal/transactions/<id>/
 # ---------------------------------------------------------------
+import hashlib
+import hmac as hmac_lib
+import time as time_lib
+import json as json_lib
+
+
+def make_hmac_headers(method, path, body_bytes, secret="dev-hmac-secret-change-me"):
+    """Helper: generate valid HMAC headers for internal requests."""
+    import uuid as uuid_lib
+    timestamp = str(int(time_lib.time()))
+    nonce = str(uuid_lib.uuid4())
+    body_hash = hashlib.sha256(body_bytes).hexdigest()
+    message = f"{method.upper()}\n{path}\n{timestamp}\n{nonce}\n{body_hash}"
+    signature = hmac_lib.new(
+        secret.encode(), message.encode(), hashlib.sha256
+    ).hexdigest()
+    return {"HTTP_X_TIMESTAMP": timestamp, "HTTP_X_NONCE": nonce, "HTTP_X_SIGNATURE": signature}
+
+
 @pytest.mark.django_db
 class TestInternalTransactionStatus:
     @patch("apps.transactions.views.publish_event", return_value=True)
     def test_update_to_completed(self, mock_publish, api_client, pending_txn):
-        res = api_client.patch(
-            internal_url(pending_txn.id), {"status": "COMPLETED"}
-        )
+        from apps.core.hmac_middleware import clear_nonces
+        clear_nonces()
+        path = f"/api/internal/transactions/{pending_txn.id}/"
+        body = json_lib.dumps({"status": "COMPLETED"}).encode()
+        headers = make_hmac_headers("PATCH", path, body)
+        res = api_client.patch(path, {"status": "COMPLETED"}, **headers)
         assert res.status_code == status.HTTP_200_OK
         assert res.data["status"] == "COMPLETED"
 
     @patch("apps.transactions.views.publish_event", return_value=True)
     def test_update_to_failed(self, mock_publish, api_client, pending_txn):
-        res = api_client.patch(
-            internal_url(pending_txn.id), {"status": "FAILED"}
-        )
+        from apps.core.hmac_middleware import clear_nonces
+        clear_nonces()
+        path = f"/api/internal/transactions/{pending_txn.id}/"
+        body = json_lib.dumps({"status": "FAILED"}).encode()
+        headers = make_hmac_headers("PATCH", path, body)
+        res = api_client.patch(path, {"status": "FAILED"}, **headers)
         assert res.status_code == status.HTTP_200_OK
         assert res.data["status"] == "FAILED"
 
     @patch("apps.transactions.views.publish_event", return_value=True)
     def test_update_publishes_kafka_event(self, mock_publish, api_client, pending_txn):
-        api_client.patch(internal_url(pending_txn.id), {"status": "COMPLETED"})
+        from apps.core.hmac_middleware import clear_nonces
+        clear_nonces()
+        path = f"/api/internal/transactions/{pending_txn.id}/"
+        body = json_lib.dumps({"status": "COMPLETED"}).encode()
+        headers = make_hmac_headers("PATCH", path, body)
+        api_client.patch(path, {"status": "COMPLETED"}, **headers)
         mock_publish.assert_called_once()
         assert mock_publish.call_args[0][0] == "transaction.updated"
 
+    def test_update_missing_hmac_headers_returns_401(self, api_client, pending_txn):
+        path = f"/api/internal/transactions/{pending_txn.id}/"
+        res = api_client.patch(path, {"status": "COMPLETED"})
+        assert res.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_update_bad_signature_returns_401(self, api_client, pending_txn):
+        from apps.core.hmac_middleware import clear_nonces
+        clear_nonces()
+        path = f"/api/internal/transactions/{pending_txn.id}/"
+        body = json_lib.dumps({"status": "COMPLETED"}).encode()
+        headers = make_hmac_headers("PATCH", path, body, secret="wrong-secret")
+        res = api_client.patch(path, {"status": "COMPLETED"}, **headers)
+        assert res.status_code == status.HTTP_401_UNAUTHORIZED
+
     def test_update_invalid_status_returns_400(self, api_client, pending_txn):
-        res = api_client.patch(
-            internal_url(pending_txn.id), {"status": "PENDING"}
-        )
+        from apps.core.hmac_middleware import clear_nonces
+        clear_nonces()
+        path = f"/api/internal/transactions/{pending_txn.id}/"
+        body = json_lib.dumps({"status": "PENDING"}).encode()
+        headers = make_hmac_headers("PATCH", path, body)
+        res = api_client.patch(path, {"status": "PENDING"}, **headers)
         assert res.status_code == status.HTTP_400_BAD_REQUEST
 
     @patch("apps.transactions.views.publish_event", return_value=True)
     def test_update_already_completed_returns_400(
         self, mock_publish, api_client, account_a
     ):
+        from apps.core.hmac_middleware import clear_nonces
+        clear_nonces()
         txn = Transaction.objects.create(
             account=account_a,
             transaction_type="DEBIT",
             amount=Decimal("50.00"),
             status=Transaction.Status.COMPLETED,
         )
-        res = api_client.patch(internal_url(txn.id), {"status": "FAILED"})
+        path = f"/api/internal/transactions/{txn.id}/"
+        body = json_lib.dumps({"status": "FAILED"}).encode()
+        headers = make_hmac_headers("PATCH", path, body)
+        res = api_client.patch(path, {"status": "FAILED"}, **headers)
         assert res.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_update_nonexistent_returns_404(self, api_client):
-        res = api_client.patch(internal_url(uuid.uuid4()), {"status": "COMPLETED"})
+        from apps.core.hmac_middleware import clear_nonces
+        clear_nonces()
+        fake_id = uuid.uuid4()
+        path = f"/api/internal/transactions/{fake_id}/"
+        body = json_lib.dumps({"status": "COMPLETED"}).encode()
+        headers = make_hmac_headers("PATCH", path, body)
+        res = api_client.patch(path, {"status": "COMPLETED"}, **headers)
         assert res.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_stale_timestamp_returns_401(self, api_client, pending_txn):
+        from apps.core.hmac_middleware import clear_nonces
+        import uuid as uuid_lib
+        clear_nonces()
+        path = f"/api/internal/transactions/{pending_txn.id}/"
+        body = json_lib.dumps({"status": "COMPLETED"}).encode()
+        stale_ts = str(int(time_lib.time()) - 400)
+        nonce = str(uuid_lib.uuid4())
+        body_hash = hashlib.sha256(body).hexdigest()
+        message = f"PATCH\n{path}\n{stale_ts}\n{nonce}\n{body_hash}"
+        sig = hmac_lib.new(b"dev-hmac-secret-change-me", message.encode(), hashlib.sha256).hexdigest()
+        res = api_client.patch(
+            path, {"status": "COMPLETED"},
+            HTTP_X_TIMESTAMP=stale_ts, HTTP_X_NONCE=nonce, HTTP_X_SIGNATURE=sig
+        )
+        assert res.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 # ---------------------------------------------------------------

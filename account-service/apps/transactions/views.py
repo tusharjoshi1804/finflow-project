@@ -71,11 +71,11 @@ class TransactionDetailView(generics.RetrieveAPIView):
 class InternalTransactionStatusView(generics.UpdateAPIView):
     """
     PATCH /api/internal/transactions/<id>/
-    Called by Processing Service (HMAC-authenticated — Day 5).
+    Called by Processing Service — HMAC authenticated.
     Updates transaction status to COMPLETED or FAILED.
     """
 
-    permission_classes = [permissions.AllowAny]  # HMAC guard added Day 5
+    permission_classes = [permissions.AllowAny]  # Auth handled by HMAC check below
     serializer_class = TransactionStatusUpdateSerializer
     http_method_names = ["patch"]
 
@@ -83,6 +83,10 @@ class InternalTransactionStatusView(generics.UpdateAPIView):
         return Transaction.objects.filter(is_deleted=False)
 
     def update(self, request, *args, **kwargs):
+        from apps.core.hmac_middleware import verify_hmac_request
+        valid, reason = verify_hmac_request(request)
+        if not valid:
+            return Response({"detail": f"HMAC auth failed: {reason}"}, status=status.HTTP_401_UNAUTHORIZED)
         txn = self.get_object()
         serializer = self.get_serializer(txn, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
