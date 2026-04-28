@@ -171,9 +171,55 @@ Error responses:
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
+| GET | / | None | Root status endpoint |
 | GET | /health | None | Health check |
 
 Response 200:
 ```json
 { "status": "ok", "service": "processing-service" }
 ```
+
+---
+
+## Kafka Events
+
+The services communicate asynchronously via Kafka topics. All events are JSON-encoded.
+
+### Topic: `transaction.created`
+
+**Producer:** Account Service  
+**Consumer:** Processing Service
+
+**Event payload:**
+```json
+{
+  "transaction_id": "uuid",
+  "account_id": "uuid",
+  "transaction_type": "DEBIT",
+  "amount": "150.00",
+  "status": "PENDING"
+}
+```
+
+**Flow:**
+1. Account Service publishes after `POST /api/transactions/` creates a transaction.
+2. Processing Service consumes the event.
+3. Processing Service triggers Airflow payment DAG (stub).
+4. Processing Service calls `PATCH /api/internal/transactions/{id}/` with HMAC auth.
+
+---
+
+### Topic: `transaction.updated`
+
+**Producer:** Account Service  
+**Consumer:** (monitoring/future features)
+
+**Event payload:**
+```json
+{
+  "transaction_id": "uuid",
+  "status": "COMPLETED"
+}
+```
+
+**Published:** After Processing Service updates transaction status via HMAC callback.
