@@ -7,6 +7,7 @@ from rest_framework import generics, parsers, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.audit.models import AuditLog
 from apps.core.minio_client import download_file, upload_file
 from apps.documents.models import Document
 from apps.documents.serializers import DocumentSerializer, DocumentUploadSerializer
@@ -59,9 +60,19 @@ class DocumentUploadView(APIView):
             content_type=file.content_type,
             file_size=file.size,
         )
+        
+        # Audit: document uploaded (scrub filename)
+        AuditLog.log(
+            action="DOCUMENT_UPLOADED",
+            resource="Document",
+            resource_id=str(doc.id),
+            actor=request.user,
+            new_data={"file_size": file.size, "content_type": file.content_type},
+        )
+        
         logger.info(
             "Document uploaded",
-            extra={"document_id": str(doc.id), "object_name": object_name},
+            extra={"document_id": str(doc.id), "file_size": file.size},
         )
         return Response(DocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
 
@@ -86,6 +97,15 @@ class DocumentDownloadView(APIView):
                 {"detail": "File could not be retrieved from storage."},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
+
+        # Audit: document downloaded
+        AuditLog.log(
+            action="DOCUMENT_DOWNLOADED",
+            resource="Document",
+            resource_id=str(doc.id),
+            actor=request.user,
+            new_data={"file_size": doc.file_size},
+        )
 
         response = HttpResponse(data, content_type=content_type)
         response["Content-Disposition"] = f'attachment; filename="{doc.file_name}"'

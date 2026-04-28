@@ -25,14 +25,21 @@ class DocumentUploadSerializer(serializers.Serializer):
     file = serializers.FileField()
 
     def validate_file(self, file):
+        # Validate content type
         content_type = file.content_type
         if content_type not in ALLOWED_CONTENT_TYPES:
             raise serializers.ValidationError(
                 f"Unsupported file type '{content_type}'. "
                 f"Allowed: {', '.join(sorted(ALLOWED_CONTENT_TYPES))}"
             )
+        
+        # Validate file size
+        if file.size is None or file.size == 0:
+            raise serializers.ValidationError("File is empty.")
         if file.size > MAX_FILE_SIZE_BYTES:
+            max_mb = MAX_FILE_SIZE_BYTES / (1024 * 1024)
             raise serializers.ValidationError(
-                f"File too large ({file.size} bytes). Max allowed: {MAX_FILE_SIZE_BYTES} bytes."
+                f"File too large ({file.size:,} bytes). "
+                f"Max allowed: {MAX_FILE_SIZE_BYTES:,} bytes ({max_mb:.1f} MB)."
             )
         return file

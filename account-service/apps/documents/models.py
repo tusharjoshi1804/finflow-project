@@ -41,3 +41,25 @@ class Document(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.file_name} ({self.user.email})"
+
+    def soft_delete(self) -> None:
+        """Override soft-delete to also remove file from MinIO."""
+        from apps.core.minio_client import delete_file
+        from apps.audit.models import AuditLog
+
+        # Delete from MinIO
+        if self.object_name:
+            delete_file(self.object_name)
+
+        # Audit: document deleted
+        AuditLog.log(
+            action="DOCUMENT_DELETED",
+            resource="Document",
+            resource_id=str(self.id),
+            actor=None,  # System action
+            old_data={"file_size": self.file_size, "content_type": self.content_type},
+        )
+
+        # Perform soft delete
+        super().soft_delete()
+
