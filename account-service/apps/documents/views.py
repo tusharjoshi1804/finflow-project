@@ -3,6 +3,7 @@ import logging
 import uuid
 
 from django.http import HttpResponse
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from rest_framework import generics, parsers, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -31,6 +32,19 @@ class DocumentUploadView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [parsers.MultiPartParser, parsers.FormParser]
 
+    @extend_schema(
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "file": {"type": "string", "format": "binary"},
+                },
+                "required": ["file"],
+            }
+        },
+        responses={201: DocumentSerializer},
+        description="Upload a KYC document (JPG, PNG, GIF, or PDF up to 10MB)",
+    )
     def post(self, request):
         serializer = DocumentUploadSerializer(data=request.data)
         if not serializer.is_valid():
