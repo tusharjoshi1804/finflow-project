@@ -21,6 +21,10 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "drf_spectacular",
     "apps.users",
+    "apps.accounts",
+    "apps.transactions",
+    "apps.documents",
+    "apps.audit",
 ]
 
 MIDDLEWARE = [
@@ -79,6 +83,7 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "EXCEPTION_HANDLER": "apps.core.exceptions.custom_exception_handler",
 }
 
 SIMPLE_JWT = {

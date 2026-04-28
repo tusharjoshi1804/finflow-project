@@ -8,6 +8,8 @@ from drf_spectacular.views import (
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from apps.transactions.urls import internal_urlpatterns
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
@@ -16,4 +18,8 @@ urlpatterns = [
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
     path("api/users/", include("apps.users.urls")),
+    path("api/accounts/", include("apps.accounts.urls")),
+    path("api/transactions/", include("apps.transactions.urls")),
+    path("api/internal/transactions/", include((internal_urlpatterns, "internal"))),
+    path("api/documents/", include("apps.documents.urls")),
 ]
