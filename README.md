@@ -254,5 +254,3 @@ Use `http://localhost:8001/health`.
 ### Kafka consumer fails on Python 3.12
 The `kafka-python` package has a known incompatibility with Python 3.12. This project uses `kafka-python-ng` instead, which is already specified in `requirements.txt`.
  
-### Running behind GitHub Codespaces
-The Account Service is configured with `SECURE_PROXY_SSL_HEADER` and `USE_X_FORWARDED_HOST` to work correctly behind the GitHub Codespaces tunnel. Make sure port visibility is set to **Public** in the Ports tab for Swagger to authenticate correctly.
