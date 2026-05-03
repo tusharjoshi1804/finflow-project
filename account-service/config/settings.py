@@ -145,3 +145,8 @@ LOGGING = {
         "apps": {"handlers": ["console"], "level": "DEBUG", "propagate": False},
     },
 }
+
+# GitHub Codespaces proxy fix
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
